@@ -71,6 +71,11 @@ namespace KartGame.KartSystems
             }
         }
 
+
+        [Header("Drift")]
+        public float DriftAngularVelocitySteering = 1.25f;
+        public float DriftAngularVelocitySmoothSpeed = 4f;
+
         public Rigidbody Rigidbody { get; private set; }
         public InputData Input     { get; private set; }
         public float AirPercent    { get; private set; }
@@ -282,11 +287,12 @@ namespace KartGame.KartSystems
 
         void FixedUpdate()
         {
+        /*
             UpdateSuspensionParams(FrontLeftWheel);
             UpdateSuspensionParams(FrontRightWheel);
             UpdateSuspensionParams(RearLeftWheel);
             UpdateSuspensionParams(RearRightWheel);
-
+        */
             GatherInputs();
 
             // apply our powerups to create our finalStats
@@ -314,7 +320,7 @@ namespace KartGame.KartSystems
             {
                 MoveVehicle(Input.Accelerate, Input.Brake, Input.TurnInput);
             }
-            GroundAirbourne();
+            // GroundAirbourne();
 
             m_PreviousGroundPercent = GroundPercent;
 
@@ -333,6 +339,7 @@ namespace KartGame.KartSystems
                 Input = m_Inputs[i].GenerateInput();
                 WantsToDrift = Input.Brake && Vector3.Dot(Rigidbody.velocity, transform.forward) > 0.0f;
             }
+            WantsToDrift = true;
         }
 
         void TickPowerups()
@@ -471,9 +478,9 @@ namespace KartGame.KartSystems
             }
 
             Rigidbody.velocity = newVelocity;
-
+            
             // Drift
-            if (GroundPercent > 0.0f)
+            if (true) // GroundPercent > 0.0f)
             {
                 if (m_InAir)
                 {
@@ -482,9 +489,9 @@ namespace KartGame.KartSystems
                 }
 
                 // manual angular velocity coefficient
-                float angularVelocitySteering = 0.4f;
-                float angularVelocitySmoothSpeed = 20f;
-
+                float angularVelocitySteering = DriftAngularVelocitySteering;
+                float angularVelocitySmoothSpeed = DriftAngularVelocitySmoothSpeed;
+                
                 // turning is reversed if we're going in reverse and pressing reverse
                 if (!localVelDirectionIsFwd && !accelDirectionIsFwd) 
                     angularVelocitySteering *= -1.0f;
