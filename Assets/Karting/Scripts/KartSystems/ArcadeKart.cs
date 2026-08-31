@@ -110,14 +110,14 @@ namespace KartGame.KartSystems
         public float DriftGrip = 0.4f;
         [Range(0.0f, 10.0f), Tooltip("Additional steer when the kart is drifting.")]
         public float DriftAdditionalSteer = 5.0f;
-        [Range(1.0f, 30.0f), Tooltip("The higher the angle, the easier it is to regain full grip.")]
+        [Range(1.0f, 45.0f), Tooltip("The higher the angle, the easier it is to regain full grip.")]
         public float MinAngleToFinishDrift = 10.0f;
         [Range(0.01f, 0.99f), Tooltip("Mininum speed percentage to switch back to full grip.")]
         public float MinSpeedPercentToFinishDrift = 0.5f;
-        [Range(1.0f, 20.0f), Tooltip("The higher the value, the easier it is to control the drift steering.")]
-        public float DriftControl = 10.0f;
-        [Range(0.0f, 20.0f), Tooltip("The lower the value, the longer the drift will last without trying to control it by steering.")]
-        public float DriftDampening = 10.0f;
+        [Range(1.0f, 40.0f), Tooltip("The higher the value, the easier it is to control the drift steering.")]
+        public float DriftControl = 20.0f;
+        [Range(0.0f, 60.0f), Tooltip("The lower the value, the longer the drift will last without trying to control it by steering.")]
+        public float DriftDampening = 20.0f;
 
         [Header("VFX")]
         [Tooltip("VFX that will be placed on the wheels when drifting.")]
@@ -480,7 +480,7 @@ namespace KartGame.KartSystems
             Rigidbody.velocity = newVelocity;
             
             // Drift
-            if (true) // GroundPercent > 0.0f)
+            if (GroundPercent > 0.0f)
             {
                 if (m_InAir)
                 {
@@ -492,9 +492,12 @@ namespace KartGame.KartSystems
                 float angularVelocitySteering = DriftAngularVelocitySteering;
                 float angularVelocitySmoothSpeed = DriftAngularVelocitySmoothSpeed;
                 
+                /*
                 // turning is reversed if we're going in reverse and pressing reverse
                 if (!localVelDirectionIsFwd && !accelDirectionIsFwd) 
                     angularVelocitySteering *= -1.0f;
+                */
+
 
                 var angularVel = Rigidbody.angularVelocity;
 
@@ -506,7 +509,7 @@ namespace KartGame.KartSystems
 
                 // rotate rigidbody's velocity as well to generate immediate velocity redirection
                 // manual velocity steering coefficient
-                float velocitySteering = 25f;
+                float velocitySteering = 20f; // 25f;
 
                 // If the karts lands with a forward not in the velocity direction, we start the drift
                 if (GroundPercent >= 0.0f && m_PreviousGroundPercent < 0.1f)
