@@ -2459,6 +2459,11 @@ PrefabInstance:
       propertyPath: m_TagString
       value: Untagged
       objectReference: {fileID: 0}
+    - target: {fileID: 6972624742742338666, guid: 6d9796d84c9e5a54fb4e014484945a46,
+        type: 3}
+      propertyPath: TimeGained
+      value: 20
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 6d9796d84c9e5a54fb4e014484945a46, type: 3}
 --- !u!1001 &294940160
@@ -6039,6 +6044,11 @@ PrefabInstance:
         type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6435499550973355434, guid: d5cf9c31208d745c1856acc71c9cb1ca,
+        type: 3}
+      propertyPath: totalTimeInSecs
+      value: 360
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: d5cf9c31208d745c1856acc71c9cb1ca, type: 3}
@@ -12360,12 +12370,12 @@ PrefabInstance:
     - target: {fileID: 4810912518991602694, guid: 19954de30401f73428254541a9ad156e,
         type: 3}
       propertyPath: baseStats.Steer
-      value: 1.75
+      value: 2
       objectReference: {fileID: 0}
     - target: {fileID: 4810912518991602694, guid: 19954de30401f73428254541a9ad156e,
         type: 3}
       propertyPath: baseStats.TopSpeed
-      value: 26
+      value: 24
       objectReference: {fileID: 0}
     - target: {fileID: 4810912518991602694, guid: 19954de30401f73428254541a9ad156e,
         type: 3}
