@@ -118,6 +118,8 @@ namespace KartGame.KartSystems
         public float DriftControl = 20.0f;
         [Range(0.0f, 60.0f), Tooltip("The lower the value, the longer the drift will last without trying to control it by steering.")]
         public float DriftDampening = 20.0f;
+        [Range(0.0f, 4.0f), Tooltip("Durée minimale de virage avant d'activer le drift...")]
+        public float MinTurnTimeForDrift = 0.3f;
 
         [Header("VFX")]
         [Tooltip("VFX that will be placed on the wheels when drifting.")]
@@ -172,6 +174,7 @@ namespace KartGame.KartSystems
         float m_CurrentGrip = 1.0f;
         float m_DriftTurningPower = 0.0f;
         float m_PreviousGroundPercent = 1.0f;
+        float m_DriftInputTime = 0.0f; // Temps écoulé depuis qu'on tourne
         readonly List<(GameObject trailRoot, WheelCollider wheel, TrailRenderer trail)> m_DriftTrailInstances = new List<(GameObject, WheelCollider, TrailRenderer)>();
         readonly List<(WheelCollider wheel, float horizontalOffset, float rotation, ParticleSystem sparks)> m_DriftSparkInstances = new List<(WheelCollider, float, float, ParticleSystem)>();
 
@@ -320,6 +323,7 @@ namespace KartGame.KartSystems
             {
                 MoveVehicle(Input.Accelerate, Input.Brake, Input.TurnInput);
             }
+
             // GroundAirbourne();
 
             m_PreviousGroundPercent = GroundPercent;
@@ -337,9 +341,11 @@ namespace KartGame.KartSystems
             for (int i = 0; i < m_Inputs.Length; i++)
             {
                 Input = m_Inputs[i].GenerateInput();
-                WantsToDrift = Input.Brake && Vector3.Dot(Rigidbody.velocity, transform.forward) > 0.0f;
-            }
-            WantsToDrift = true;
+                if (Input.Brake && Vector3.Dot(Rigidbody.velocity, transform.forward) > 0.0f)
+                {
+                    WantsToDrift = true;
+                }
+            }            
         }
 
         void TickPowerups()
@@ -515,7 +521,7 @@ namespace KartGame.KartSystems
                 if (GroundPercent >= 0.0f && m_PreviousGroundPercent < 0.1f)
                 {
                     Vector3 flattenVelocity = Vector3.ProjectOnPlane(Rigidbody.velocity, m_VerticalReference).normalized;
-                    if (Vector3.Dot(flattenVelocity, transform.forward * Mathf.Sign(accelInput)) < Mathf.Cos(MinAngleToFinishDrift * Mathf.Deg2Rad))
+                    if (Vector3.Dot(flattenVelocity, transform.forward * Mathf.Sign(accelInput)) < Mathf.Cos(MinAngleToFinishDrift * Mathf.Deg2Rad) && m_DriftInputTime >= MinTurnTimeForDrift)
                     {
                         IsDrifting = true;
                         m_CurrentGrip = DriftGrip;
@@ -526,21 +532,43 @@ namespace KartGame.KartSystems
                 // Drift Management
                 if (!IsDrifting)
                 {
-                    if ((WantsToDrift || isBraking) && currentSpeed > maxSpeed * MinSpeedPercentToFinishDrift)
+                    float turnInputAbs = Mathf.Abs(turnInput);
+
+                    // 1. Si le joueur tourne le volant (au-delà du seuil minimal)
+                    if (turnInputAbs >= k_NullInput)
                     {
+                        // On accumule le temps passé à tourner
+                        m_DriftInputTime += Time.fixedDeltaTime;
+                    }
+                    else
+                    {
+                        // S'il arrête de tourner, on réinitialise le compteur
+                        m_DriftInputTime = 0.0f;
+                    }
+
+                    // 2. On déclenche le drift SEULEMENT si le temps de virage est suffisant
+                    // if ((WantsToDrift || isBraking) && currentSpeed > maxSpeed * MinSpeedPercentToFinishDrift && m_DriftInputTime >= MinTurnTimeForDrift)
+                    if (currentSpeed > maxSpeed * MinSpeedPercentToFinishDrift && m_DriftInputTime >= MinTurnTimeForDrift)
+                        {
                         IsDrifting = true;
                         m_DriftTurningPower = turningPower + (Mathf.Sign(turningPower) * DriftAdditionalSteer);
                         m_CurrentGrip = DriftGrip;
-
+                        Debug.Log("Drift started!");
                         ActivateDriftVFX(true);
                     }
+                    else
+                    {
+                        Debug.Log("Rien !");
+                    }
                 }
-
-                if (IsDrifting)
+                else
                 {
+                    // Une fois le drift enclenché, on gère la physique du drift normalement
                     float turnInputAbs = Mathf.Abs(turnInput);
                     if (turnInputAbs < k_NullInput)
+                    {
                         m_DriftTurningPower = Mathf.MoveTowards(m_DriftTurningPower, 0.0f, Mathf.Clamp01(DriftDampening * Time.fixedDeltaTime));
+                    }
 
                     // Update the turning power based on input
                     float driftMaxSteerValue = m_FinalStats.Steer + DriftAdditionalSteer;
@@ -561,8 +589,8 @@ namespace KartGame.KartSystems
                         // No Input, and car aligned with speed direction => Stop the drift
                         IsDrifting = false;
                         m_CurrentGrip = m_FinalStats.Grip;
+                        m_DriftInputTime = 0.0f; // Réinitialiser le timer à la fin du drift
                     }
-
                 }
 
                 // rotate our velocity based on current steer value
