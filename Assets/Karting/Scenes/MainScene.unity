@@ -3691,13 +3691,73 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4810912518991602694, guid: 8d8ee4bf9f96a4546883a2762ba2b3f4,
         type: 3}
+      propertyPath: DriftGrip
+      value: 0.9
+      objectReference: {fileID: 0}
+    - target: {fileID: 4810912518991602694, guid: 8d8ee4bf9f96a4546883a2762ba2b3f4,
+        type: 3}
       propertyPath: CenterOfMass
       value: 
       objectReference: {fileID: 1746836592}
     - target: {fileID: 4810912518991602694, guid: 8d8ee4bf9f96a4546883a2762ba2b3f4,
         type: 3}
+      propertyPath: DriftControl
+      value: 35
+      objectReference: {fileID: 0}
+    - target: {fileID: 4810912518991602694, guid: 8d8ee4bf9f96a4546883a2762ba2b3f4,
+        type: 3}
+      propertyPath: DriftDampening
+      value: 50
+      objectReference: {fileID: 0}
+    - target: {fileID: 4810912518991602694, guid: 8d8ee4bf9f96a4546883a2762ba2b3f4,
+        type: 3}
+      propertyPath: baseStats.Grip
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4810912518991602694, guid: 8d8ee4bf9f96a4546883a2762ba2b3f4,
+        type: 3}
+      propertyPath: baseStats.Steer
+      value: 3.25
+      objectReference: {fileID: 0}
+    - target: {fileID: 4810912518991602694, guid: 8d8ee4bf9f96a4546883a2762ba2b3f4,
+        type: 3}
+      propertyPath: baseStats.TopSpeed
+      value: 30
+      objectReference: {fileID: 0}
+    - target: {fileID: 4810912518991602694, guid: 8d8ee4bf9f96a4546883a2762ba2b3f4,
+        type: 3}
+      propertyPath: MinTurnTimeForDrift
+      value: 0.35
+      objectReference: {fileID: 0}
+    - target: {fileID: 4810912518991602694, guid: 8d8ee4bf9f96a4546883a2762ba2b3f4,
+        type: 3}
+      propertyPath: DriftAdditionalSteer
+      value: 1.3
+      objectReference: {fileID: 0}
+    - target: {fileID: 4810912518991602694, guid: 8d8ee4bf9f96a4546883a2762ba2b3f4,
+        type: 3}
+      propertyPath: MinAngleToFinishDrift
+      value: 40
+      objectReference: {fileID: 0}
+    - target: {fileID: 4810912518991602694, guid: 8d8ee4bf9f96a4546883a2762ba2b3f4,
+        type: 3}
       propertyPath: baseStats.Acceleration
-      value: 10
+      value: 15
+      objectReference: {fileID: 0}
+    - target: {fileID: 4810912518991602694, guid: 8d8ee4bf9f96a4546883a2762ba2b3f4,
+        type: 3}
+      propertyPath: baseStats.AccelerationCurve
+      value: 0.9
+      objectReference: {fileID: 0}
+    - target: {fileID: 4810912518991602694, guid: 8d8ee4bf9f96a4546883a2762ba2b3f4,
+        type: 3}
+      propertyPath: DriftAngularVelocitySteering
+      value: 1.3
+      objectReference: {fileID: 0}
+    - target: {fileID: 4810912518991602694, guid: 8d8ee4bf9f96a4546883a2762ba2b3f4,
+        type: 3}
+      propertyPath: DriftAngularVelocitySmoothSpeed
+      value: 5
       objectReference: {fileID: 0}
     - target: {fileID: 4810912519057417295, guid: 8d8ee4bf9f96a4546883a2762ba2b3f4,
         type: 3}
@@ -3718,6 +3778,11 @@ PrefabInstance:
         type: 3}
       propertyPath: m_SidewaysFriction.m_ExtremumSlip
       value: 0.3
+      objectReference: {fileID: 0}
+    - target: {fileID: 6416914309247151543, guid: 8d8ee4bf9f96a4546883a2762ba2b3f4,
+        type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 8d8ee4bf9f96a4546883a2762ba2b3f4, type: 3}
