@@ -1,19 +1,24 @@
 ﻿using UnityEngine;
 
-namespace KartGame.KartSystems {
-
-    public class KeyboardInput : BaseInput
+namespace KartGame.KartSystems
+{
+    public class KeyboardInput : MonoBehaviour, IInput
     {
-        public string TurnInputName = "Horizontal";
-        public string AccelerateButtonName = "Accelerate";
-        public string BrakeButtonName = "Brake";
+        public KeyCode accelerateKey = KeyCode.Z;
+        public KeyCode brakeKey = KeyCode.S;
+        public KeyCode turnLeftKey = KeyCode.Q;
+        public KeyCode turnRightKey = KeyCode.D;
+        public KeyCode jumpKey = KeyCode.Space;
 
-        public override InputData GenerateInput() {
+        public InputData GenerateInput()
+        {
             return new InputData
             {
-                Accelerate = Input.GetButton(AccelerateButtonName),
-                Brake = Input.GetButton(BrakeButtonName),
-                TurnInput = Input.GetAxis("Horizontal")
+                Accelerate = Input.GetKey(accelerateKey) ? 1f : 0f,
+                Brake = Input.GetKey(brakeKey) ? 1f : 0f,
+                TurnInput = (Input.GetKey(turnRightKey) ? 1f : 0f) - (Input.GetKey(turnLeftKey) ? 1f : 0f),
+                Jump = Input.GetKeyDown(jumpKey), // FIX: Impulsion unique avec GetKeyDown
+                Boost = false
             };
         }
     }
