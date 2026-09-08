@@ -76,8 +76,6 @@ namespace KartGame.KartSystems
         private bool jumpRequested = false;
 
         [Header("Drift Settings")]
-      //  public float driftFriction = 0.5f; // Réduit l'adhérence pendant le drift
-      //  public float driftSteerMultiplier = 1.5f; // Augmente la capacité à tourner
         private float originalLateralFriction;
         private bool isDrifting = false;
         private bool driftRequested = false;
@@ -101,6 +99,15 @@ namespace KartGame.KartSystems
             AddedGravity        = 1f,
         };
 
+        
+        public float angularVelocitySteering = 4f;
+        public float angularVelocitySmoothSpeed = 20f;
+
+
+        // manual angular velocity coefficient
+        public float inDriftAngularVelocitySteering = 2f;
+        public float inDrifAngularVelocitySmoothSpeed = 4f;
+
         [Header("Vehicle Visual")] 
         public List<GameObject> m_VisualWheels;
 
@@ -120,9 +127,9 @@ namespace KartGame.KartSystems
         public float MinAngleToFinishDrift = 10.0f;
         [Range(0.01f, 0.99f), Tooltip("Mininum speed percentage to switch back to full grip.")]
         public float MinSpeedPercentToFinishDrift = 0.5f;
-        [Range(1.0f, 40.0f), Tooltip("The higher the value, the easier it is to control the drift steering.")]
+        [Range(1.0f, 90.0f), Tooltip("The higher the value, the easier it is to control the drift steering.")]
         public float DriftControl = 10.0f;
-        [Range(0.0f, 40.0f), Tooltip("The lower the value, the longer the drift will last without trying to control it by steering.")]
+        [Range(0.0f, 90.0f), Tooltip("The lower the value, the longer the drift will last without trying to control it by steering.")]
         public float DriftDampening = 10.0f;
 
         [Header("VFX")]
@@ -317,7 +324,7 @@ namespace KartGame.KartSystems
                 // Debug.Log("jumpRequested");
                 if (GroundPercent > 0.01f)
                 {
-                    Rigidbody.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
+                    Rigidbody.AddForce(Vector3.up * jumpForce, ForceMode.VelocityChange);
                     // On réinitialise la demande de saut
                     jumpRequested = false;
                 }
@@ -502,7 +509,8 @@ namespace KartGame.KartSystems
             newVelocity.y = Rigidbody.velocity.y;
 
             //  clamp max speed if we are on ground
-            if (GroundPercent > 0.0f && !wasOverMaxSpeed)
+            // if (GroundPercent > 0.0f && !wasOverMaxSpeed)
+            if (!wasOverMaxSpeed)
             {
                 newVelocity = Vector3.ClampMagnitude(newVelocity, maxSpeed);
             }
@@ -516,33 +524,21 @@ namespace KartGame.KartSystems
             Rigidbody.velocity = newVelocity;
 
             // Drift
-            if (GroundPercent > 0.0f)
+            if (GroundPercent > 0.0f)  // au moins une roue est au sol, on peut tourner et gérer le drift
             {
-                if (m_InAir)
+                if (m_InAir)  // si on était en l'air et qu'on touche le sol, on joue l'effet de particules
                 {
                     m_InAir = false;
                     Instantiate(JumpVFX, transform.position, Quaternion.identity);
                 }
-
-                // manual angular velocity coefficient
-                float angularVelocitySteering = 0.4f;
-                float angularVelocitySmoothSpeed = 20f;
 
                 // turning is reversed if we're going in reverse and pressing reverse
                 if (!localVelDirectionIsFwd && !accelDirectionIsFwd) 
                     angularVelocitySteering *= -1.0f;
 
                 var angularVel = Rigidbody.angularVelocity;
-
-                // move the Y angular velocity towards our target
-                angularVel.y = Mathf.MoveTowards(angularVel.y, turningPower * angularVelocitySteering, Time.fixedDeltaTime * angularVelocitySmoothSpeed);
-
-                // apply the angular velocity
-                Rigidbody.angularVelocity = angularVel;
-
-                // rotate rigidbody's velocity as well to generate immediate velocity redirection
-                // manual velocity steering coefficient
-                float velocitySteering = 25f;
+                float velocitySteering = angularVelocitySteering;
+                float angularVelocitySmoothSpeed = this.angularVelocitySmoothSpeed;
 
                 // If the karts lands with a forward not in the velocity direction, we start the drift
                 if (GroundPercent >= 0.0f && m_PreviousGroundPercent < 0.1f)
@@ -571,6 +567,8 @@ namespace KartGame.KartSystems
 
                 if (IsDrifting)
                 {
+                    velocitySteering = inDriftAngularVelocitySteering;
+                    angularVelocitySmoothSpeed = inDrifAngularVelocitySmoothSpeed;
                     float turnInputAbs = Mathf.Abs(turnInput);
                     if (turnInputAbs < k_NullInput)
                         m_DriftTurningPower = Mathf.MoveTowards(m_DriftTurningPower, 0.0f, Mathf.Clamp01(DriftDampening * Time.fixedDeltaTime));
@@ -598,8 +596,14 @@ namespace KartGame.KartSystems
 
                 }
 
+                // move the Y angular velocity towards our target
+                angularVel.y = Mathf.MoveTowards(angularVel.y, turningPower * velocitySteering, Time.fixedDeltaTime * angularVelocitySmoothSpeed);
+
+                // apply the angular velocity
+                Rigidbody.angularVelocity = angularVel;
+
                 // rotate our velocity based on current steer value
-                Rigidbody.velocity = Quaternion.AngleAxis(turningPower * Mathf.Sign(localVel.z) * velocitySteering * m_CurrentGrip * Time.fixedDeltaTime, transform.up) * Rigidbody.velocity;
+                // Rigidbody.velocity = Quaternion.AngleAxis(turningPower * Mathf.Sign(localVel.z) * velocitySteering * m_CurrentGrip * Time.fixedDeltaTime, transform.up) * Rigidbody.velocity;
             }
             else
             {
