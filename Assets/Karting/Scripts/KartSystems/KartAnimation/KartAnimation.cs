@@ -63,10 +63,10 @@ namespace KartGame.KartSystems
             frontRightWheel.wheelCollider.steerAngle = rotationAngle;
 
             // Update position and rotation from WheelCollider
-           // UpdateWheelFromCollider(frontLeftWheel);
-           // UpdateWheelFromCollider(frontRightWheel);
-           // UpdateWheelFromCollider(rearLeftWheel);
-           // UpdateWheelFromCollider(rearRightWheel);
+            UpdateWheelFromCollider(frontLeftWheel);
+            UpdateWheelFromCollider(frontRightWheel);
+            UpdateWheelFromCollider(rearLeftWheel);
+            UpdateWheelFromCollider(rearRightWheel);
         }
 
         void LateUpdate()
