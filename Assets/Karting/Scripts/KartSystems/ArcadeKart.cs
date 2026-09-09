@@ -71,6 +71,10 @@ namespace KartGame.KartSystems
             }
         }
 
+        [Header("Dynamic Grip")]
+        public float MinGripAtMaxSpeed = 0.75f;        // Grip à vitesse max (normal)
+        public float MinDriftGripAtMaxSpeed = 0.2f;    // Grip à vitesse max (drift)
+
         [Header("Jump Settings")]
         public float jumpForce = 500f;
         private bool jumpRequested = false;
@@ -596,14 +600,20 @@ namespace KartGame.KartSystems
 
                 }
 
-                // move the Y angular velocity towards our target
-                angularVel.y = Mathf.MoveTowards(angularVel.y, turningPower * velocitySteering, Time.fixedDeltaTime * angularVelocitySmoothSpeed);
-
-                // apply the angular velocity
+                // Apply angular velocity
+                angularVel.y = Mathf.MoveTowards(angularVel.y, turningPower * velocitySteering,
+                    Time.fixedDeltaTime * angularVelocitySmoothSpeed);
                 Rigidbody.angularVelocity = angularVel;
 
-                // rotate our velocity based on current steer value
-                Rigidbody.velocity = Quaternion.AngleAxis(turningPower * Mathf.Sign(localVel.z) * velocitySteering * m_CurrentGrip * Time.fixedDeltaTime, transform.up) * Rigidbody.velocity;
+                // FRICTION LATÉRALE PROGRESSIVE
+                float speedFactor = Mathf.Clamp01(currentSpeed / maxSpeed);
+                float dynamicGrip = IsDrifting
+                    ? Mathf.Lerp(DriftGrip, MinDriftGripAtMaxSpeed, speedFactor)
+                    : Mathf.Lerp(m_FinalStats.Grip, MinGripAtMaxSpeed, speedFactor);
+
+                Vector3 kart_LocalVelocity = transform.InverseTransformVector(Rigidbody.velocity);
+                kart_LocalVelocity.x *= dynamicGrip;
+                Rigidbody.velocity = transform.TransformVector(kart_LocalVelocity);
             }
             else
             {
