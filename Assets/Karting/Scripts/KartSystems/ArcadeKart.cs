@@ -629,12 +629,12 @@ namespace KartGame.KartSystems
 
                 // FRICTION LATÉRALE AGRESSIVE
                 Vector3 kart_LocalVelocity = transform.InverseTransformVector(Rigidbody.velocity);
-                float speedFactor = 0.30f+Mathf.Clamp01(currentSpeed / (maxSpeed));
+                float speedFactor = 0.50f+Mathf.Clamp01(currentSpeed / (maxSpeed));
 
                 if (IsDrifting)
                 {
                     // EN DRIFT: permet 100% de vélocité latérale à haute vitesse (dérive)
-                    float driftLateralFactor = Mathf.Lerp(0.0f, 1.0f, speedFactor);
+                    float driftLateralFactor = Mathf.Lerp(0.0f, 0.96f, speedFactor);
                     kart_LocalVelocity.x *= driftLateralFactor;
                 }
                 else
