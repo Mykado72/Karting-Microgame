@@ -2,6 +2,7 @@
 using UnityEngine;
 using System.Collections.Generic;
 using UnityEngine.VFX;
+using CodiceApp.Gravatar;
 
 namespace KartGame.KartSystems
 {
@@ -71,10 +72,6 @@ namespace KartGame.KartSystems
             }
         }
 
-        [Header("Dynamic Grip")]
-        public float MinGripAtMaxSpeed = 0.75f;        // Grip à vitesse max (normal)
-        public float MinDriftGripAtMaxSpeed = 0.2f;    // Grip à vitesse max (drift)
-
         [Header("Jump Settings")]
         public float jumpForce = 500f;
         private bool jumpRequested = false;
@@ -83,11 +80,6 @@ namespace KartGame.KartSystems
         private float originalLateralFriction;
         private bool isDrifting = false;
         private bool driftRequested = false;
-
-        // Boost system
-        private float m_DriftBoostTimer = 0.0f;
-        private bool m_WasDriftingLastFrame = false;
-        private float m_CurrentAccelerationMultiplier = 1.0f;
 
         public Rigidbody Rigidbody { get; private set; }
         public InputData Input     { get; private set; }
@@ -143,7 +135,7 @@ namespace KartGame.KartSystems
 
         [Header("Acceleration & Turbo System")]
         [Range(0.1f, 50.0f), Tooltip("Accélération de base du kart (avant modifications).")]
-        public float BaseAccelerationPower = 15f;
+        public float BaseAccelerationPower = 15f;  // AUGMENTÉ (était ~5-10)
 
         [Range(0.1f, 50.0f), Tooltip("Accélération en marche arrière.")]
         public float BaseReverseAccelerationPower = 12f;
@@ -159,6 +151,12 @@ namespace KartGame.KartSystems
 
         [Range(0.0f, 1.0f), Tooltip("Angle minimum (% alignement) pour bénéficier du boost full.")]
         public float DriftBoostAlignmentThreshold = 0.85f;
+
+        // Variables privées pour gérer le boost
+        private float m_DriftBoostTimer = 0.0f;
+        private bool m_WasDriftingLastFrame = false;
+        private float m_CurrentAccelerationMultiplier = 1.0f;
+
 
         [Header("VFX")]
         [Tooltip("VFX that will be placed on the wheels when drifting.")]
@@ -210,7 +208,7 @@ namespace KartGame.KartSystems
         // Drift params
         public bool WantsToDrift { get; private set; } = false;
         public bool IsDrifting { get; private set; } = false;
-        float m_CurrentGrip = 1.0f;
+        float m_CurrentGrip;
         float m_DriftTurningPower = 0.0f;
         float m_PreviousGroundPercent = 1.0f;
         readonly List<(GameObject trailRoot, WheelCollider wheel, TrailRenderer trail)> m_DriftTrailInstances = new List<(GameObject, WheelCollider, TrailRenderer)>();
@@ -287,7 +285,7 @@ namespace KartGame.KartSystems
             UpdateSuspensionParams(RearLeftWheel);
             UpdateSuspensionParams(RearRightWheel);
 
-            m_CurrentGrip = baseStats.Grip;
+            m_CurrentGrip = 1.0f;
 
             if (DriftSparkVFX != null)
             {
@@ -504,7 +502,7 @@ namespace KartGame.KartSystems
 
             // use the max speed for the direction we are going--forward or reverse.
             float maxSpeed = localVelDirectionIsFwd ? m_FinalStats.TopSpeed : m_FinalStats.ReverseSpeed;
-            float accelPower = accelDirectionIsFwd ? BaseAccelerationPower : BaseReverseAccelerationPower;
+            float accelPower = accelDirectionIsFwd ? m_FinalStats.Acceleration : m_FinalStats.ReverseAcceleration;
 
             float currentSpeed = Rigidbody.velocity.magnitude;
             float accelRampT = currentSpeed / maxSpeed;
@@ -513,14 +511,16 @@ namespace KartGame.KartSystems
 
             bool isBraking = (localVelDirectionIsFwd && brake) || (!localVelDirectionIsFwd && accelerate);
 
-            // if we are braking (moving reverse to where we are going)
-            // use the braking accleration instead
-            float finalAccelPower = isBraking ? m_FinalStats.Braking : accelPower;
+            float accelerationForce = BaseAccelerationPower;  // Utiliser la nouvelle variable
+            if (isBraking)
+                accelerationForce = -m_FinalStats.Braking;
+            else if (!accelDirectionIsFwd)
+                accelerationForce = -BaseReverseAccelerationPower;  // Utiliser la nouvelle variable
 
-            // Appliquer le multiplicateur d'accélération (boost en sortie de drift)
-            finalAccelPower *= m_CurrentAccelerationMultiplier;
+            // Appliquer le multiplicateur d'accélération (boost ou normal)
+            accelerationForce *= m_CurrentAccelerationMultiplier;
 
-            float finalAcceleration = finalAccelPower * accelRamp;
+            float finalAcceleration = accelerationForce * Mathf.Pow(1 - currentSpeedRatio, m_FinalStats.AccelerationCurve);
 
 
             // apply inputs to forward/backward
@@ -620,6 +620,62 @@ namespace KartGame.KartSystems
                     }
                 }
 
+                if (!IsDrifting && m_WasDriftingLastFrame)
+                {
+                    // On vient de sortir d'un drift!
+                    // Calculer le bonus d'alignement (plus on est aligné, plus gros le boost)
+
+                    Vector3 flattenVelocity = Vector3.ProjectOnPlane(Rigidbody.velocity, m_VerticalReference).normalized;
+                    float alignmentBonus = Vector3.Dot(flattenVelocity, transform.forward);
+                    alignmentBonus = Mathf.Clamp01(alignmentBonus);  // Entre 0 et 1
+
+                    // Vérifier que la vitesse est suffisante
+                    float speedPercent = currentSpeed / maxSpeed;
+                    if (speedPercent >= DriftBoostMinSpeedPercent && alignmentBonus >= DriftBoostAlignmentThreshold)
+                    {
+                        // BOOST ACTIVÉ!
+                        m_DriftBoostTimer = DriftExitBoostDuration;
+
+                        // Calculer le multiplicateur en fonction de l'alignement
+                        // Si parfait alignement (alignmentBonus = 1.0) → multiplicateur FULL
+                        // Si mal aligné → multiplicateur réduit
+                        float alignmentFactor = Mathf.Lerp(0.5f, 1.0f, alignmentBonus);
+                        m_CurrentAccelerationMultiplier = 1.0f + ((DriftExitBoostMultiplier - 1.0f) * alignmentFactor);
+
+                        // DEBUG: Afficher quand le boost s'active
+                        Debug.Log($"🚀 DRIFT BOOST ACTIVÉ! Alignment: {alignmentBonus:F2}, Speed: {speedPercent:F2}");
+                    }
+                }
+
+                // Gérer la durée du boost
+                if (m_DriftBoostTimer > 0.0f)
+                {
+                    m_DriftBoostTimer -= Time.fixedDeltaTime;
+
+                    if (m_DriftBoostTimer <= 0.0f)
+                    {
+                        // Fin du boost
+                        m_CurrentAccelerationMultiplier = 1.0f;
+                        m_DriftBoostTimer = 0.0f;
+                    }
+                    else
+                    {
+                        // Boost actif: appliquer une lerp progressive (transition douce)
+                        float boostProgress = m_DriftBoostTimer / DriftExitBoostDuration;
+                        m_CurrentAccelerationMultiplier = Mathf.Lerp(1.0f,
+                            1.0f + (DriftExitBoostMultiplier - 1.0f),
+                            boostProgress);
+                    }
+                }
+                else
+                {
+                    m_CurrentAccelerationMultiplier = 1.0f;
+                }
+
+                // Sauvegarder l'état du drift pour la frame suivante
+                m_WasDriftingLastFrame = IsDrifting;
+
+
                 if (IsDrifting)
                 {
                     velocitySteering = inDriftAngularVelocitySteering;
@@ -651,78 +707,29 @@ namespace KartGame.KartSystems
 
                 }
 
-                // ============================================================
-                // GESTION DU DRIFT EXIT BOOST
-                // ============================================================
-                if (!IsDrifting && m_WasDriftingLastFrame)
-                {
-                    // On vient de sortir d'un drift!
-                    Vector3 flattenVelocity = Vector3.ProjectOnPlane(Rigidbody.velocity, m_VerticalReference).normalized;
-                    float alignmentBonus = Vector3.Dot(flattenVelocity, transform.forward);
-                    alignmentBonus = Mathf.Clamp01(alignmentBonus);
-                    
-                    // Vérifier que la vitesse est suffisante
-                    float speedPercent = currentSpeed / maxSpeed;
-                    if (speedPercent >= DriftBoostMinSpeedPercent && alignmentBonus >= DriftBoostAlignmentThreshold)
-                    {
-                        // BOOST ACTIVÉ!
-                        m_DriftBoostTimer = DriftExitBoostDuration;
-                        
-                        float alignmentFactor = Mathf.Lerp(0.5f, 1.0f, alignmentBonus);
-                        m_CurrentAccelerationMultiplier = 1.0f + ((DriftExitBoostMultiplier - 1.0f) * alignmentFactor);
-                        
-                        #if UNITY_EDITOR
-                        Debug.Log($"🚀 DRIFT BOOST ACTIVÉ! Alignment: {alignmentBonus:F2}, Speed: {speedPercent:F2}, Multiplier: {m_CurrentAccelerationMultiplier:F2}x");
-                        #endif
-                    }
-                }
-
-                // Gérer la durée du boost
-                if (m_DriftBoostTimer > 0.0f)
-                {
-                    m_DriftBoostTimer -= Time.fixedDeltaTime;
-                    
-                    if (m_DriftBoostTimer <= 0.0f)
-                    {
-                        m_CurrentAccelerationMultiplier = 1.0f;
-                        m_DriftBoostTimer = 0.0f;
-                    }
-                    else
-                    {
-                        float boostProgress = m_DriftBoostTimer / DriftExitBoostDuration;
-                        m_CurrentAccelerationMultiplier = Mathf.Lerp(1.0f, 
-                            1.0f + (DriftExitBoostMultiplier - 1.0f), 
-                            boostProgress);
-                    }
-                }
-                else
-                {
-                    m_CurrentAccelerationMultiplier = 1.0f;
-                }
-
-                m_WasDriftingLastFrame = IsDrifting;
-
                 // Apply angular velocity
                 angularVel.y = Mathf.MoveTowards(angularVel.y, turningPower * actualAngularVelocitySteering,Time.fixedDeltaTime * angularVelocitySmoothSpeed);
                 Rigidbody.angularVelocity = angularVel;
 
                 // FRICTION LATÉRALE AGRESSIVE
                 Vector3 kart_LocalVelocity = transform.InverseTransformVector(Rigidbody.velocity);
-                float speedFactor = 0.80f+(0.20f*Mathf.Clamp01(currentSpeed / (maxSpeed)));
+                float speedFactor = 0.50f+(0.50f*Mathf.Clamp01(currentSpeed / (maxSpeed)));
+                float driftLateralFactor=0.0f;
+                float normalLateralFactor=0.0f;
 
                 if (IsDrifting)
                 {
                     // EN DRIFT: permet 100% de vélocité latérale à haute vitesse (dérive)
-                    float driftLateralFactor = Mathf.Lerp(0.0f, 1.0f, speedFactor);
+                    driftLateralFactor = Mathf.Lerp(0.0f, 1.0f, speedFactor);
                     kart_LocalVelocity.x *= driftLateralFactor;
                 }
                 else
                 {
                     // EN NORMAL: permet SEULEMENT 75% de vélocité latérale à haute vitesse 
-                    float normalLateralFactor = Mathf.Lerp(0.0f, 0.75f, speedFactor);
+                    normalLateralFactor = Mathf.Lerp(0.0f, 0.85f, speedFactor);
                     kart_LocalVelocity.x *= normalLateralFactor;
                 }
-
+                Debug.Log($"Kart : {normalLateralFactor:F2}, {driftLateralFactor:F2}");
                 Rigidbody.velocity = transform.TransformVector(kart_LocalVelocity);
 
             }
