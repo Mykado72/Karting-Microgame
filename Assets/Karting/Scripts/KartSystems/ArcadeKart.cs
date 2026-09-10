@@ -520,9 +520,10 @@ namespace KartGame.KartSystems
                     velocityDirection = transform.forward;
                 }
 
-                // Appliquer l'accélération DANS LA DIRECTION DE DÉPLACEMENT RÉELLE
-                // Pas dans la direction braquée !
-                movement = velocityDirection * accelInput * finalAcceleration * ((m_HasCollision || GroundPercent > 0.0f) ? 1.0f : 0.0f);
+                // APRÈS: Utiliser la direction d'input au lieu de velocityDirection
+                Vector3 accelDirection = Mathf.Sign(accelInput) > 0 ? transform.forward : -transform.forward;
+                movement = accelDirection * Mathf.Abs(accelInput) * finalAcceleration *
+                    ((m_HasCollision || GroundPercent > 0.0f) ? 1.0f : 0.0f);
             }
 
             // forward movement
@@ -559,8 +560,9 @@ namespace KartGame.KartSystems
                 }
 
                 // turning is reversed if we're going in reverse and pressing reverse
-                if (!localVelDirectionIsFwd && !accelDirectionIsFwd) 
-                    angularVelocitySteering *= -1.0f;
+                float actualAngularVelocitySteering = angularVelocitySteering;
+                if (!localVelDirectionIsFwd && !accelDirectionIsFwd)
+                    actualAngularVelocitySteering *= -1.0f;
 
                 var angularVel = Rigidbody.angularVelocity;
                 float velocitySteering = angularVelocitySteering;
@@ -623,24 +625,23 @@ namespace KartGame.KartSystems
                 }
 
                 // Apply angular velocity
-                angularVel.y = Mathf.MoveTowards(angularVel.y, turningPower * velocitySteering,
-                    Time.fixedDeltaTime * angularVelocitySmoothSpeed);
+                angularVel.y = Mathf.MoveTowards(angularVel.y, turningPower * actualAngularVelocitySteering,Time.fixedDeltaTime * angularVelocitySmoothSpeed);
                 Rigidbody.angularVelocity = angularVel;
 
                 // FRICTION LATÉRALE AGRESSIVE
                 Vector3 kart_LocalVelocity = transform.InverseTransformVector(Rigidbody.velocity);
-                float speedFactor = 0.50f+Mathf.Clamp01(currentSpeed / (maxSpeed));
+                float speedFactor = 0.80f+(0.20f*Mathf.Clamp01(currentSpeed / (maxSpeed)));
 
                 if (IsDrifting)
                 {
                     // EN DRIFT: permet 100% de vélocité latérale à haute vitesse (dérive)
-                    float driftLateralFactor = Mathf.Lerp(0.0f, 0.96f, speedFactor);
+                    float driftLateralFactor = Mathf.Lerp(0.0f, 1.0f, speedFactor);
                     kart_LocalVelocity.x *= driftLateralFactor;
                 }
                 else
                 {
-                    // EN NORMAL: permet SEULEMENT 25% de vélocité latérale à haute vitesse 
-                    float normalLateralFactor = Mathf.Lerp(0.0f, 0.25f, speedFactor);
+                    // EN NORMAL: permet SEULEMENT 75% de vélocité latérale à haute vitesse 
+                    float normalLateralFactor = Mathf.Lerp(0.0f, 0.75f, speedFactor);
                     kart_LocalVelocity.x *= normalLateralFactor;
                 }
 
