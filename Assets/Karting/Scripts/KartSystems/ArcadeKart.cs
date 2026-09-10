@@ -136,6 +136,33 @@ namespace KartGame.KartSystems
         [Range(0.0f, 90.0f), Tooltip("The lower the value, the longer the drift will last without trying to control it by steering.")]
         public float DriftDampening = 10.0f;
 
+        [Header("Acceleration & Turbo System")]
+        [Range(0.1f, 50.0f), Tooltip("Accélération de base du kart (avant modifications).")]
+        public float BaseAccelerationPower = 15f;  // AUGMENTÉ (était ~5-10)
+ 
+        [Range(0.1f, 50.0f), Tooltip("Accélération en marche arrière.")]
+        public float BaseReverseAccelerationPower = 12f;
+ 
+        [Range(0.0f, 5.0f), Tooltip("Multiplicateur d'accélération en sortie de drift (turbo).")]
+        public float DriftExitBoostMultiplier = 2.0f;
+ 
+        [Range(0.0f, 1.0f), Tooltip("Durée du boost en sortie de drift (en secondes).")]
+        public float DriftExitBoostDuration = 0.4f;
+ 
+        [Range(0.0f, 1.0f), Tooltip("Vitesse minimale (% de TopSpeed) pour bénéficier du boost.")]
+        public float DriftBoostMinSpeedPercent = 0.6f;
+ 
+        [Range(0.0f, 1.0f), Tooltip("Angle minimum (% alignement) pour bénéficier du boost full.")]
+        public float DriftBoostAlignmentThreshold = 0.85f;
+ 
+        // Variables privées pour gérer le boost
+        private float m_DriftBoostTimer = 0.0f;
+        private bool m_WasDriftingLastFrame = false;
+        private float m_CurrentAccelerationMultiplier = 1.0f;
+
+
+
+
         [Header("VFX")]
         [Tooltip("VFX that will be placed on the wheels when drifting.")]
         public ParticleSystem DriftSparkVFX;
@@ -630,7 +657,7 @@ namespace KartGame.KartSystems
 
                 // FRICTION LATÉRALE AGRESSIVE
                 Vector3 kart_LocalVelocity = transform.InverseTransformVector(Rigidbody.velocity);
-                float speedFactor = 0.80f+(0.20f*Mathf.Clamp01(currentSpeed / (maxSpeed)));
+                float speedFactor = 0.90f+(0.10f*Mathf.Clamp01(currentSpeed / (maxSpeed)));
 
                 if (IsDrifting)
                 {
@@ -641,7 +668,7 @@ namespace KartGame.KartSystems
                 else
                 {
                     // EN NORMAL: permet SEULEMENT 75% de vélocité latérale à haute vitesse 
-                    float normalLateralFactor = Mathf.Lerp(0.0f, 0.75f, speedFactor);
+                    float normalLateralFactor = Mathf.Lerp(0.0f, 0.85f, speedFactor);
                     kart_LocalVelocity.x *= normalLateralFactor;
                 }
 
