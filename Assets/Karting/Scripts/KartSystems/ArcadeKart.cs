@@ -71,6 +71,8 @@ namespace KartGame.KartSystems
             }
         }
 
+        public float accelInput;
+
         [Header("Dynamic Grip")]
         public float MinGripAtMaxSpeed = 0.75f;        // Grip à vitesse max (normal)
         public float MinDriftGripAtMaxSpeed = 0.2f;    // Grip à vitesse max (drift)
@@ -78,6 +80,9 @@ namespace KartGame.KartSystems
         [Header("Jump Settings")]
         public float jumpForce = 500f;
         private bool jumpRequested = false;
+
+        private bool wasJumpPressedLastFrame = false;
+        private bool wasDriftPressedLastFrame = false;
 
         [Header("Drift Settings")]
         private float originalLateralFriction;
@@ -327,16 +332,22 @@ namespace KartGame.KartSystems
         }
 
         void Update()
-        {               
-            // Détection de l'appui sur Espace
-            if (Input.Jump)
+        {
+            // Edge detection pour Jump
+            if (Input.Jump && !wasJumpPressedLastFrame)
             {
                 jumpRequested = true;
             }
-            if (Input.Drift)
+
+            // Edge detection pour Drift (bonus)
+            if (Input.Drift && !wasDriftPressedLastFrame)
             {
                 driftRequested = true;
             }
+
+            // Sauvegarder les états
+            wasJumpPressedLastFrame = Input.Jump;
+            wasDriftPressedLastFrame = Input.Drift;
         }
 
         void FixedUpdate()
@@ -493,7 +504,7 @@ namespace KartGame.KartSystems
 
         void MoveVehicle(bool accelerate, bool brake, float turnInput)
         {
-            float accelInput = (accelerate ? 1.0f : 0.0f) - (brake ? 1.0f : 0.0f);
+            accelInput = (accelerate ? 1.0f : 0.0f) - (brake ? 1.0f : 0.0f);
 
             // manual acceleration curve coefficient scalar
             float accelerationCurveCoeff = 5;
@@ -713,13 +724,13 @@ namespace KartGame.KartSystems
                 if (IsDrifting)
                 {
                     // EN DRIFT: permet 100% de vélocité latérale à haute vitesse (dérive)
-                    float driftLateralFactor = Mathf.Lerp(0.0f, 1.0f, speedFactor);
+                    float driftLateralFactor = Mathf.Lerp(0.3f, 1.0f, speedFactor);
                     kart_LocalVelocity.x *= driftLateralFactor;
                 }
                 else
                 {
                     // EN NORMAL: permet SEULEMENT 75% de vélocité latérale à haute vitesse 
-                    float normalLateralFactor = Mathf.Lerp(0.0f, 0.75f, speedFactor);
+                    float normalLateralFactor = Mathf.Lerp(0.3f, 0.75f, speedFactor);
                     kart_LocalVelocity.x *= normalLateralFactor;
                 }
 
