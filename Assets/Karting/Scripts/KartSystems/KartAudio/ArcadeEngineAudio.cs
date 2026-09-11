@@ -19,7 +19,7 @@ namespace KartGame.KartSystems
         [Tooltip("Maximum Volume the running sound will be at full speed")]
         [Range(0.1f, 1.0f)]public float RunningSoundMaxVolume = 1.0f;
         [Tooltip("Maximum Pitch the running sound will be at full speed")]
-        [Range(0.1f, 2.0f)] public float RunningSoundMaxPitch = 1.0f;
+        [Range(0.1f, 4.0f)] public float RunningSoundMaxPitch = 1.0f;
         [Tooltip("What audio clip should play when the kart moves in Reverse?")]
         public AudioSource ReverseSound;
         [Tooltip("Maximum Volume the Reverse sound will be at full Reverse speed")]
@@ -39,7 +39,7 @@ namespace KartGame.KartSystems
             float kartSpeed = 0.0f;
             if (arcadeKart != null)
             {
-                kartSpeed = arcadeKart.LocalSpeed();
+                kartSpeed = arcadeKart.LocalSpeed()*0.75f+arcadeKart.accelInput*0.25f;
                 Drift.volume = arcadeKart.IsDrifting && arcadeKart.GroundPercent > 0.0f ? arcadeKart.Rigidbody.velocity.magnitude / arcadeKart.GetMaxSpeed() : 0.0f;
             }
 
