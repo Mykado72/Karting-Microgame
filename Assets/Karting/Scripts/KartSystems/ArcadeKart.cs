@@ -259,12 +259,13 @@ namespace KartGame.KartSystems
 
         private void UpdateDriftVFXOrientation()
         {
+        
             foreach (var vfx in m_DriftSparkInstances)
             {
                 vfx.sparks.transform.position = vfx.wheel.transform.position - (vfx.wheel.radius * Vector3.up) + (DriftTrailVerticalOffset * Vector3.up) + (transform.right * vfx.horizontalOffset);
                 vfx.sparks.transform.rotation = transform.rotation * Quaternion.Euler(0.0f, 0.0f, vfx.rotation);
             }
-
+        
             foreach (var trail in m_DriftTrailInstances)
             {
                 trail.trailRoot.transform.position = trail.wheel.transform.position - (trail.wheel.radius * Vector3.up) + (DriftTrailVerticalOffset * Vector3.up);
@@ -310,6 +311,7 @@ namespace KartGame.KartSystems
             {
                 foreach (var nozzle in Nozzles)
                 {
+                    // Instantiate(NozzleVFX, nozzle, false);
                     Instantiate(NozzleVFX, nozzle, false);
                 }
             }
@@ -329,6 +331,18 @@ namespace KartGame.KartSystems
             ParticleSystem spark = vfx.GetComponent<ParticleSystem>();
             spark.Stop();
             m_DriftSparkInstances.Add((wheel, horizontalOffset, -rotation, spark));
+        }
+
+        void AddSparkToNozzle()
+        {
+            foreach (var nozzle in Nozzles)
+            {
+                GameObject vfx = Instantiate(DriftSparkVFX.gameObject, nozzle.transform, false);
+                ParticleSystem spark = vfx.GetComponent<ParticleSystem>();
+                spark.Stop();
+                spark.transform.rotation = transform.rotation * Quaternion.Euler(0.0f, 90.0f, 0.0f);
+                Instantiate(spark, nozzle, false);
+            }
         }
 
         void Update()
@@ -678,7 +692,7 @@ namespace KartGame.KartSystems
                     {
                         // BOOST ACTIVÉ!
                         m_DriftBoostTimer = DriftExitBoostDuration;
-                        
+                        AddSparkToNozzle();
                         float alignmentFactor = Mathf.Lerp(0.5f, 1.0f, alignmentBonus);
                         m_CurrentAccelerationMultiplier = 1.0f + ((DriftExitBoostMultiplier - 1.0f) * alignmentFactor);
                         
